@@ -767,7 +767,6 @@
     </footer>
 
     <script>
-        const BASE_URL = 'http://sohayl22.pythonanywhere.com';
         const productsData = {
             "gta": {
                 title: "حساب GTA 5 Steam",
@@ -794,6 +793,14 @@
                 description: "اشتراك شهر كامل في <img src='./images/disney.png' alt='Disney+' class='disney-logo'> <strong>Disney+</strong>. استمتع بمشاهدة كل الأفلام والمسلسلات الحصرية من Disney."
             }
         };
+
+        const orders = {
+            "74562341": { status: "Shipped", img: "images/my-shipped.png" },
+            "12345678": { status: "Delivered", img: "images/my-delivered.png" },
+            "87654321": { status: "Processing", img: "images/my-processing.png" },
+            "10101010": { status: "Out for Delivery", img: "images/my-outfordelivery.png" }
+        };
+
         let currentProduct = null;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -820,11 +827,11 @@
                     const item = document.createElement('div');
                     item.className = 'product-item glass-card';
                     item.innerHTML = `
-                                <img src="${product.image}" alt="${product.title}">
-                                <h3>${product.title}</h3>
-                                <p>السعر: ${product.price} ج.م</p>
-                                <button onclick="openProductModal('${productId}')">شراء الآن</button>
-                            `;
+                                    <img src="${product.image}" alt="${product.title}">
+                                    <h3>${product.title}</h3>
+                                    <p>السعر: ${product.price} ج.م</p>
+                                    <button onclick="openProductModal('${productId}')">شراء الآن</button>
+                                `;
                     productsContainer.appendChild(item);
                 }
             }
@@ -839,11 +846,11 @@
                     const item = document.createElement('div');
                     item.className = 'product-item glass-card';
                     item.innerHTML = `
-                                <img src="${product.image}" alt="${product.title}">
-                                <h3>${product.title}</h3>
-                                <p>السعر: ${product.price} ج.م</p>
-                                <button onclick="openProductModal('${productId}')">شراء الآن</button>
-                            `;
+                                    <img src="${product.image}" alt="${product.title}">
+                                    <h3>${product.title}</h3>
+                                    <p>السعر: ${product.price} ج.م</p>
+                                    <button onclick="openProductModal('${productId}')">شراء الآن</button>
+                                `;
                     subscriptionsContainer.appendChild(item);
                 }
             }
@@ -862,7 +869,7 @@
             });
         }
 
-        async function checkOrder() {
+        function checkOrder() {
             const orderCode = document.getElementById('orderCode').value;
             const statusImage = document.getElementById('statusImage');
             const resultText = document.getElementById('resultText');
@@ -871,38 +878,31 @@
             statusImage.style.opacity = '0';
             resultText.style.opacity = '0';
 
-            try {
-                const response = await fetch(`${BASE_URL}/check_order?order_id=${orderCode}`);
-                const data = await response.json();
+            const order = orders[orderCode];
 
-                if (response.ok) {
-                    if (data.status === "processing") {
-                        statusImage.src = "./images/my-processing.png";
+            if (order) {
+                statusImage.src = order.img;
+                switch (order.status) {
+                    case "Processing":
                         resultText.textContent = "تم استلام طلبك. جاري تجهيزه.";
-                    } else if (data.status === "shipped") {
-                        statusImage.src = "./images/my-shipped.png";
+                        break;
+                    case "Shipped":
                         resultText.textContent = "الطلب قيد الشحن.";
-                    } else if (data.status === "out_for_delivery") {
-                        statusImage.src = "./images/my-outfordelivery.png";
+                        break;
+                    case "Out for Delivery":
                         resultText.textContent = "الطلب في طريقه للتسليم.";
-                    } else if (data.status === "delivered") {
-                        statusImage.src = "./images/my-delivered.png";
+                        break;
+                    case "Delivered":
                         resultText.textContent = "تم توصيل طلبك بنجاح! شكراً لك.";
-                    } else {
-                        statusImage.src = "";
-                        resultText.textContent = "حالة الطلب غير معروفة.";
-                    }
-                    statusImage.style.display = 'block';
-                } else {
-                    statusImage.style.display = 'none';
-                    resultText.textContent = data.error || "لم يتم العثور على طلب بهذا الكود.";
+                        break;
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                resultText.textContent = "حدث خطأ في الاتصال بالسيرفر. حاول مرة أخرى.";
-            } finally {
-                resultText.style.opacity = '1';
+                statusImage.style.display = 'block';
                 statusImage.style.opacity = '1';
+                resultText.style.opacity = '1';
+            } else {
+                statusImage.style.display = 'none';
+                resultText.textContent = "لم يتم العثور على طلب بهذا الكود.";
+                resultText.style.opacity = '1';
             }
         }
 
@@ -940,52 +940,6 @@
             document.getElementById('vodafoneDetails').style.display = paymentMethod === 'vodafone' ? 'block' : 'none';
             document.getElementById('paypalDetails').style.display = paymentMethod === 'paypal' ? 'block' : 'none';
         }
-
-        function showModal(modalId) {
-            document.getElementById(modalId).classList.add('is-visible');
-            document.getElementById('overlay').style.display = 'block';
-        }
-
-        // Formspree event listeners to handle payment forms
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', async function (event) {
-                event.preventDefault();
-                const formData = new FormData(this);
-                const loadingMessage = document.getElementById('loading');
-                const confirmationMessage = document.getElementById('confirmationMessage');
-
-                loadingMessage.style.display = 'block';
-                confirmationMessage.style.display = 'none';
-
-                try {
-                    const response = await fetch(this.action, {
-                        method: this.method,
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    if (response.ok) {
-                        loadingMessage.style.display = 'none';
-                        confirmationMessage.textContent = "تم إرسال طلبك بنجاح! سيتم مراجعة الدفع والتواصل معك قريباً.";
-                        confirmationMessage.style.color = '#28a745';
-                        confirmationMessage.style.display = 'block';
-                        this.reset();
-                    } else {
-                        loadingMessage.style.display = 'none';
-                        confirmationMessage.textContent = "حدث خطأ أثناء إرسال طلبك. حاول مرة أخرى.";
-                        confirmationMessage.style.color = '#dc3545';
-                        confirmationMessage.style.display = 'block';
-                    }
-                } catch (error) {
-                    loadingMessage.style.display = 'none';
-                    confirmationMessage.textContent = "حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى لاحقاً.";
-                    confirmationMessage.style.color = '#dc3545';
-                    confirmationMessage.style.display = 'block';
-                }
-            });
-        });
     </script>
 </body>
 </html>
